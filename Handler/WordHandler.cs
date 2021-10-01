@@ -9,7 +9,7 @@ namespace Hangman.Handler
     {
         #region Private Fields
 
-        private readonly string[] secretWordsArray = File.ReadAllText("..\\..\\..\\Words\\secretwords.txt").Split(",", StringSplitOptions.RemoveEmptyEntries);
+        private readonly string[] secretWordsArray = File.ReadAllText("..\\..\\..\\Textfiles\\secretwords.txt").Split(",", StringSplitOptions.RemoveEmptyEntries);
         private int amountOfGuesses = 10;
         private string secretWord;
 
