@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -7,20 +8,27 @@ namespace Hangman.Handler
 {
     public class WordHandler
     {
+        //C:\Users\johan\source\repos\Hangman\Textfiles\
         #region Private Fields
-
-        private readonly string[] secretWordsArray = File.ReadAllText("..\\..\\..\\Textfiles\\secretwords.txt").Split(",", StringSplitOptions.RemoveEmptyEntries);
-        private int amountOfGuesses = 10;
+        private static readonly string path = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName, "Textfiles\\secretwords.txt");
+        private readonly string[] secretWordsArray = File.ReadAllText(path).Split(",", StringSplitOptions.RemoveEmptyEntries);
+        private char[] correctGuesses = new char[] { };
+        private int amountOfGuesses = 0;
         private string secretWord;
 
         #endregion
-        
+
         public void InitializeGame()
         {
             StringBuilder strB = new StringBuilder();
+            StringBuilder strBuilderWords = new StringBuilder();
+
+            amountOfGuesses = 10;
 
             //Random generated word from an array of words
             secretWord = GetRandomWord().ToUpper();
+
+            correctGuesses = new char[secretWord.Length];
 
             //Array with only underscores
             char[] hiddenWord = HiddenWord(secretWord);
@@ -29,8 +37,11 @@ namespace Hangman.Handler
             {
                 Console.Clear();
 
-                Console.WriteLine($"Guess the word or type a letter\tGuesses left {amountOfGuesses--}" +
-                    $"\nWrong guesses: {strB} ");
+
+                Console.WriteLine($"Type a word or a letter \tGuesses left: {amountOfGuesses}" +
+                    $"\nWrong letters: {strB}" +
+                    $"\nWrong words: {strBuilderWords}");
+
 
                 //Writes each index in the array with the hidden letters to console
                 foreach (var hiddenLetter in hiddenWord)
@@ -41,50 +52,84 @@ namespace Hangman.Handler
                 //Player input
                 var input = Console.ReadLine().ToUpper();
 
-                //Only true if input is one letter
-                if (input.Length == 1)
+                if (string.IsNullOrEmpty(input) || string.IsNullOrWhiteSpace(input) || int.TryParse(input, out _))
                 {
-                    //Converts the string input to char
-                    var letter = char.Parse(input);
-
-                    //Increments amount of guesses if the Player guessed same letter twice
-                    if (strB.ToString().Contains(letter))
-                        amountOfGuesses++;
-
-                    //True if input matches a letter in the secret word
-                    if (IsLetterCorrect(letter, secretWord))
+                }
+                else
+                {
+                    //Only true if input is one letter
+                    if (input.Length == 1)
                     {
-                        for (int i = 0; i < hiddenWord.Length; i++)
-                        {
-                            //Checks if input matches a letter at specific index
-                            if (secretWord[i] == letter)
-                                //Changes an underscore at specific index to the letter
-                                ChangeLetterAt(i, letter, hiddenWord);
+                        //Converts the string input to char
+                        var letter = char.Parse(input);
 
-                            //Checks if all the player inputs matches the secret word
-                            if (hiddenWord.SequenceEqual(secretWord))
+                        //True if input matches a letter in the secret word
+                        if (IsLetterCorrect(letter, secretWord))
+                        {
+                            for (int i = 0; i < hiddenWord.Length; i++)
                             {
-                                //Player has won
-                                PlayerWins();
-                                break;
+
+                                //Checks if input matches a letter at specific index
+                                if (secretWord[i] == letter)
+                                {
+                                    //Changes an underscore at specific index to the letter
+                                    ChangeLetterAt(i, letter, hiddenWord);
+
+                                    //Stores the letter in a char array
+                                    correctGuesses[i] = letter;
+                                }
+
+                                //Checks if all the player inputs matches the secret word
+                                if (hiddenWord.SequenceEqual(secretWord))
+                                {
+                                    //Player has won
+                                    PlayerWins();
+                                    return;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Checks if player input exists
+                            if (!strB.ToString().Contains(letter))
+                            {
+                                // Adds the letter to StringBuilder.
+                                strB.Append(letter).Append(" ");
+
+                                // Removes one guess!
+                                amountOfGuesses--;
                             }
                         }
                     }
                     else
-                        //If player input is not a match
-                        //adds the letter to StringBuilder.
-                        strB.Append(letter);
-                }
-                else
-                {
-                    //True if player input is a word and matches the secret word
-                    if (IsWordCorrect(input, secretWord))
                     {
-                        //Player has won
-                        PlayerWins();
-                        break;
+                        // True if player input is a word and matches the secret word
+                        if (IsWordCorrect(input, secretWord))
+                        {
+                            //Player has won
+                            PlayerWins();
+                            return;
+                        }
+                        else
+                        {
+                            // Checks if player input exists
+                            if (!strBuilderWords.ToString().Contains(input))
+                            {
+                                // adds the word to StringBuilder.
+                                strBuilderWords.Append(input).Append(" ");
+
+                                //Removes one guess!
+                                amountOfGuesses--;
+                            }
+                        }
                     }
                 }
+            }
+
+            if (amountOfGuesses == 0)
+            {
+                PlayerLooses();
+                return;
             }
         }
 
@@ -96,7 +141,21 @@ namespace Hangman.Handler
             Console.Clear();
             Console.WriteLine($"Congratulations, you won!" +
                 $"\nYou have {amountOfGuesses} left" +
-                $"\nThe secret word is: {secretWord}");
+                $"\nThe secret word is: {secretWord}" +
+                $"\n\nPress ENTER to go back to the menu");
+
+            Console.Read();
+        }
+
+        /// <summary>
+        /// Writes amount of guesses and the secret word.
+        /// </summary>
+        public void PlayerLooses()
+        {
+            Console.Clear();
+            Console.WriteLine($"Sorry, you have lost!" +
+                $"\nThe secret word is: {secretWord}" +
+                $"\n\nPress ENTER to go back to the menu");
 
             Console.Read();
         }
